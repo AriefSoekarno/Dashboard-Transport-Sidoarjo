@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Pengiriman — TRP Sidoarjo 2026</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/dist/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --blue-dark: #1a237e;
+    --blue-mid: #283593;
+    --blue-light: #3949ab;
+    --green: #2e7d32;
+    --orange: #e65100;
+    --red: #c62828;
+    --bg: #f0f2f5;
+    --surface: #ffffff;
+    --border: #dee2e6;
+    --text: #212529;
+    --text-muted: #6c757d;
+    --good-bg: #c8e6c9; --good-text: #1b5e20;
+    --warn-bg: #fff9c4; --warn-text: #f57f17;
+    --bad-bg:  #ffcdd2; --bad-text:  #c62828;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+
+  /* Header */
+  .top-bar { background: var(--blue-dark); color: #fff; padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+  .top-bar h1 { font-size: 18px; font-weight: 600; }
+  .top-bar span { font-size: 12px; opacity: .75; }
+
+  /* Layout */
+  .container { max-width: 1200px; margin: 0 auto; padding: 1.25rem; }
+
+  /* Kartu ringkasan */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 1.25rem; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .875rem 1rem; }
+  .card-label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .5px; }
+  .card-value { font-size: 24px; font-weight: 700; line-height: 1.2; }
+  .card-sub   { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .card.good .card-value { color: var(--green); }
+  .card.warn .card-value { color: #f57f17; }
+  .card.bad  .card-value { color: var(--red); }
+  .card-icon { font-size: 20px; color: var(--text-muted); margin-bottom: 4px; }
+
+  /* Filter */
+  .toolbar { display: flex; gap: 10px; margin-bottom: 1.25rem; align-items: center; flex-wrap: wrap; }
+  .toolbar label { font-size: 13px; color: var(--text-muted); }
+  select, button {
+    font-size: 13px; padding: 6px 12px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--text); cursor: pointer;
+  }
+  button { background: var(--blue-dark); color: #fff; border-color: var(--blue-dark); }
+  button:hover { background: var(--blue-mid); }
+
+  /* Section */
+  .section { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; margin-bottom: 1.25rem; }
+  .section-title { font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 1rem; display: flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: .5px; }
+
+  /* Grid 2 kolom */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+  @media (max-width: 768px) { .grid2 { grid-template-columns: 1fr; } }
+
+  /* Chart */
+  .chart-wrap { position: relative; width: 100%; }
+
+  /* Legend */
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--text-muted); margin-bottom: 10px; }
+  .leg { display: flex; align-items: center; gap: 5px; }
+  .leg-dot { width: 10px; height: 10px; border-radius: 2px; }
+
+  /* Tabel */
+  .tbl-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th { background: var(--blue-dark); color: #fff; padding: 8px 10px; text-align: center; font-weight: 600; white-space: nowrap; }
+  thead th:first-child { text-align: left; border-radius: 4px 0 0 0; }
+  thead th:last-child { border-radius: 0 4px 0 0; }
+  tbody td { padding: 7px 10px; text-align: center; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  tbody td:first-child { text-align: left; font-weight: 500; }
+  tbody tr:nth-child(even) td { background: #f8f9fa; }
+  tbody tr:hover td { background: #e8eaf6; }
+  .total-row td { background: #eceff1 !important; font-weight: 700; border-top: 2px solid var(--blue-dark); }
+  .good-cell { background: var(--good-bg) !important; color: var(--good-text); font-weight: 600; }
+  .warn-cell { background: var(--warn-bg) !important; color: var(--warn-text); font-weight: 600; }
+  .bad-cell  { background: var(--bad-bg)  !important; color: var(--bad-text);  font-weight: 600; }
+
+  /* Legenda warna */
+  .legend-box { display: flex; gap: 16px; flex-wrap: wrap; padding: .75rem 1rem; background: #f8f9fa; border-radius: 8px; font-size: 12px; margin-top: 1rem; }
+  .lb { display: flex; align-items: center; gap: 6px; }
+  .lb-color { width: 14px; height: 14px; border-radius: 3px; }
+
+  /* Footer */
+  footer { text-align: center; color: var(--text-muted); font-size: 12px; padding: 1.5rem 0; }
+
+  /* Responsive kartu */
+  @media (max-width: 480px) { .cards { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <h1><i class="ti ti-package"></i> Dashboard Pengiriman — TRP Sidoarjo 2026</h1>
+  <span id="lastUpdate"></span>
+</div>
+
+<div class="container">
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <label>Filter BU:</label>
+    <select id="selBU" onchange="render()">
+      <option value="ALL">Semua BU</option>
+      <option value="HCI">HCI</option>
+      <option value="AHI">AHI</option>
+      <option value="KLS">KLS</option>
+    </select>
+    <label>Filter Bulan:</label>
+    <select id="selMonth" onchange="render()">
+      <option value="ALL">Semua Bulan</option>
+    </select>
+    <button onclick="exportCSV()"><i class="ti ti-download"></i> Export CSV</button>
+  </div>
+
+  <!-- Kartu Ringkasan -->
+  <div class="cards" id="cards"></div>
+
+  <!-- Chart SLA & DO -->
+  <div class="grid2">
+    <div class="section">
+      <div class="section-title"><i class="ti ti-chart-line"></i> Tren SLA Keberhasilan Kirim</div>
+      <div class="legend" id="legendSLA"></div>
+      <div class="chart-wrap" style="height:220px"><canvas id="chartSLA" role="img" aria-label="Grafik tren SLA bulanan">Tren SLA bulanan.</canvas></div>
+    </div>
+    <div class="section">
+      <div class="section-title"><i class="ti ti-packages"></i> Volume DO per Bulan</div>
+      <div class="legend">
+        <div class="leg"><div class="leg-dot" style="background:#3949ab"></div>DO Diantar</div>
+        <div class="leg"><div class="leg-dot" style="background:#43a047"></div>DO Terkirim</div>
+      </div>
+      <div class="chart-wrap" style="height:220px"><canvas id="chartDO" role="img" aria-label="Grafik volume DO bulanan">Volume DO per bulan.</canvas></div>
+    </div>
+  </div>
+
+  <!-- Chart Gagal Kirim -->
+  <div class="section">
+    <div class="section-title"><i class="ti ti-alert-triangle"></i> Gagal Kirim — External vs Internal</div>
+    <div class="legend">
+      <div class="leg"><div class="leg-dot" style="background:#e53935"></div>Gagal External</div>
+      <div class="leg"><div class="leg-dot" style="background:#fb8c00"></div>Gagal Internal</div>
+    </div>
+    <div class="chart-wrap" style="height:180px"><canvas id="chartGagal" role="img" aria-label="Grafik gagal kirim">Gagal kirim per bulan.</canvas></div>
+  </div>
+
+  <!-- Tabel Detail -->
+  <div class="section">
+    <div class="section-title"><i class="ti ti-table"></i> Tabel Ringkasan Bulanan</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead id="tblHead"></thead>
+        <tbody id="tblBody"></tbody>
+      </table>
+    </div>
+    <div class="legend-box">
+      <div class="lb"><div class="lb-color" style="background:var(--good-bg)"></div><span style="color:var(--good-text)">SLA ≥ 99.9% — Sangat Baik</span></div>
+      <div class="lb"><div class="lb-color" style="background:var(--warn-bg)"></div><span style="color:var(--warn-text)">SLA 99.5–99.9% — Perlu Perhatian</span></div>
+      <div class="lb"><div class="lb-color" style="background:var(--bad-bg)"></div><span style="color:var(--bad-text)">SLA &lt; 99.5% — Di Bawah Target</span></div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  Dashboard Pengiriman TRP Sidoarjo 2026 &nbsp;|&nbsp; Data diperbarui secara manual via Google Apps Script
+</footer>
+
+<script>
+// ── DATA (hasil agregasi dari sheet "Keberhasilan Kirim (SLA)") ──
+// Untuk memperbarui data, jalankan Apps Script lalu update array ini
+const RAW = [
+  {m:1, dHCI:7697, tHCI:7689, eHCI:8,  iHCI:1, dAHI:2082, tAHI:2081, eAHI:0, iAHI:1, dKLS:371, tKLS:366, eKLS:1, iKLS:4},
+  {m:2, dHCI:7606, tHCI:7598, eHCI:2,  iHCI:6, dAHI:1528, tAHI:1528, eAHI:0, iAHI:0, dKLS:244, tKLS:239, eKLS:1, iKLS:4},
+  {m:3, dHCI:8591, tHCI:8576, eHCI:9,  iHCI:1, dAHI:1947, tAHI:1947, eAHI:0, iAHI:1, dKLS:337, tKLS:323, eKLS:8, iKLS:6},
+  {m:4, dHCI:1529, tHCI:1529, eHCI:0,  iHCI:0, dAHI:487,  tAHI:487,  eAHI:0, iAHI:0, dKLS:77,  tKLS:76,  eKLS:1, iKLS:1},
+];
+
+const MONTHS = ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const fmt = n => Number(n).toLocaleString('id-ID');
+const pct = v => (v*100).toFixed(2)+'%';
+const slaClass = v => v>=0.999?'good-cell':v>=0.995?'warn-cell':'bad-cell';
+
+function calcRow(r) {
+  const dAll=r.dHCI+r.dAHI+r.dKLS, tAll=r.tHCI+r.tAHI+r.tKLS;
+  return {
+    ...r,
+    dAll, tAll,
+    eAll: r.eHCI+r.eAHI+r.eKLS,
+    iAll: r.iHCI+r.iAHI+r.iKLS,
+    slaAll: dAll>0?tAll/dAll:0,
+    slaHCI: r.dHCI>0?r.tHCI/r.dHCI:0,
+    slaAHI: r.dAHI>0?r.tAHI/r.dAHI:0,
+    slaKLS: r.dKLS>0?r.tKLS/r.dKLS:0,
+  };
+}
+const DATA = RAW.map(calcRow);
+
+// Isi dropdown bulan
+const selMonth = document.getElementById('selMonth');
+DATA.forEach(r => {
+  const o = document.createElement('option');
+  o.value = r.m; o.textContent = MONTHS[r.m];
+  selMonth.appendChild(o);
+});
+
+// Tanggal update
+document.getElementById('lastUpdate').textContent =
+  'Diperbarui: ' + new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'});
+
+let chartSLA=null, chartDO=null, chartGagal=null;
+
+function getFiltered() {
+  const bu = document.getElementById('selBU').value;
+  const mo = document.getElementById('selMonth').value;
+  let rows = mo==='ALL' ? DATA : DATA.filter(r=>r.m==mo);
+  return { rows, bu };
+}
+
+function getVal(r, bu, type) {
+  const map = {
+    d: {ALL:r.dAll, HCI:r.dHCI, AHI:r.dAHI, KLS:r.dKLS},
+    t: {ALL:r.tAll, HCI:r.tHCI, AHI:r.tAHI, KLS:r.tKLS},
+    e: {ALL:r.eAll, HCI:r.eHCI, AHI:r.eAHI, KLS:r.eKLS},
+    i: {ALL:r.iAll, HCI:r.iHCI, AHI:r.iAHI, KLS:r.iKLS},
+    sla:{ALL:r.slaAll,HCI:r.slaHCI,AHI:r.slaAHI,KLS:r.slaKLS},
+  };
+  return map[type][bu] ?? 0;
+}
+
+function render() {
+  const {rows, bu} = getFiltered();
+  const labels = rows.map(r=>MONTHS[r.m]);
+
+  // Totals
+  const tD = rows.reduce((s,r)=>s+getVal(r,bu,'d'),0);
+  const tT = rows.reduce((s,r)=>s+getVal(r,bu,'t'),0);
+  const tE = rows.reduce((s,r)=>s+getVal(r,bu,'e'),0);
+  const tI = rows.reduce((s,r)=>s+getVal(r,bu,'i'),0);
+  const tSLA = tD>0?tT/tD:0;
+  const sNum = (tSLA*100).toFixed(2);
+  const sC = tSLA>=0.999?'good':tSLA>=0.995?'warn':'bad';
+
+  // Kartu
+  document.getElementById('cards').innerHTML = `
+    <div class="card"><div class="card-icon"><i class="ti ti-package"></i></div><div class="card-label">Total DO Diantar</div><div class="card-value">${fmt(tD)}</div></div>
+    <div class="card"><div class="card-icon"><i class="ti ti-circle-check"></i></div><div class="card-label">DO Terkirim</div><div class="card-value">${fmt(tT)}</div></div>
+    <div class="card ${sC}"><div class="card-icon"><i class="ti ti-chart-line"></i></div><div class="card-label">SLA ${bu}</div><div class="card-value">${sNum}%</div></div>
+    <div class="card"><div class="card-icon"><i class="ti ti-x"></i></div><div class="card-label">Gagal External</div><div class="card-value" style="color:var(--red)">${fmt(tE)}</div></div>
+    <div class="card"><div class="card-icon"><i class="ti ti-alert-circle"></i></div><div class="card-label">Gagal Internal</div><div class="card-value" style="color:var(--red)">${fmt(tI)}</div></div>
+    <div class="card"><div class="card-icon"><i class="ti ti-buildings"></i></div><div class="card-label">Jumlah Bulan</div><div class="card-value">${rows.length}</div></div>
+  `;
+
+  // ── Chart SLA ──
+  const dsSLA = [{
+    label:'SLA '+(bu==='ALL'?'ALL':bu),
+    data: rows.map(r=>+(getVal(r,bu,'sla')*100).toFixed(3)),
+    borderColor:'#1a237e', backgroundColor:'rgba(26,35,126,.08)',
+    tension:.3, fill:true, pointRadius:5, borderWidth:2
+  }];
+  if(bu==='ALL') {
+    dsSLA.push({label:'HCI',data:rows.map(r=>+(r.slaHCI*100).toFixed(3)),borderColor:'#1565c0',tension:.3,fill:false,pointRadius:3,borderWidth:1.5,borderDash:[5,4]});
+    dsSLA.push({label:'AHI',data:rows.map(r=>+(r.slaAHI*100).toFixed(3)),borderColor:'#2e7d32',tension:.3,fill:false,pointRadius:3,borderWidth:1.5,borderDash:[5,4]});
+    dsSLA.push({label:'KLS',data:rows.map(r=>+(r.slaKLS*100).toFixed(3)),borderColor:'#e65100',tension:.3,fill:false,pointRadius:3,borderWidth:1.5,borderDash:[5,4]});
+  }
+  const legSLA = document.getElementById('legendSLA');
+  legSLA.innerHTML = dsSLA.map(d=>`<div class="leg"><div class="leg-dot" style="background:${d.borderColor}"></div>${d.label}</div>`).join('');
+  if(chartSLA) chartSLA.destroy();
+  chartSLA = new Chart(document.getElementById('chartSLA'),{
+    type:'line', data:{labels,datasets:dsSLA},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.parsed.y.toFixed(2)+'%'}}},
+      scales:{
+        y:{min:97,max:100.5,ticks:{callback:v=>v+'%',font:{size:11}},grid:{color:'rgba(0,0,0,.05)'}},
+        x:{ticks:{font:{size:11},autoSkip:false,maxRotation:30},grid:{display:false}}
+      }
+    }
+  });
+
+  // ── Chart DO ──
+  if(chartDO) chartDO.destroy();
+  chartDO = new Chart(document.getElementById('chartDO'),{
+    type:'bar',
+    data:{labels, datasets:[
+      {label:'DO Diantar', data:rows.map(r=>getVal(r,bu,'d')), backgroundColor:'#3949ab', borderRadius:4},
+      {label:'DO Terkirim',data:rows.map(r=>getVal(r,bu,'t')), backgroundColor:'#43a047', borderRadius:4},
+    ]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        y:{ticks:{font:{size:11},callback:v=>v.toLocaleString('id-ID')},grid:{color:'rgba(0,0,0,.05)'}},
+        x:{ticks:{font:{size:11},autoSkip:false,maxRotation:30},grid:{display:false}}
+      }
+    }
+  });
+
+  // ── Chart Gagal ──
+  if(chartGagal) chartGagal.destroy();
+  chartGagal = new Chart(document.getElementById('chartGagal'),{
+    type:'bar',
+    data:{labels, datasets:[
+      {label:'Gagal External',data:rows.map(r=>getVal(r,bu,'e')),backgroundColor:'#e53935',borderRadius:4},
+      {label:'Gagal Internal',data:rows.map(r=>getVal(r,bu,'i')),backgroundColor:'#fb8c00',borderRadius:4},
+    ]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        y:{ticks:{font:{size:11}},grid:{color:'rgba(0,0,0,.05)'}},
+        x:{ticks:{font:{size:11},autoSkip:false,maxRotation:30},grid:{display:false}}
+      }
+    }
+  });
+
+  // ── Tabel ──
+  const colHead = bu==='ALL'
+    ? '<th>Bulan</th><th>DO Diantar</th><th>DO Terkirim</th><th>Gagal Ext</th><th>Gagal Int</th><th>SLA ALL</th><th>SLA HCI</th><th>SLA AHI</th><th>SLA KLS</th>'
+    : `<th>Bulan</th><th>DO Diantar</th><th>DO Terkirim</th><th>Gagal Ext</th><th>Gagal Int</th><th>SLA ${bu}</th>`;
+  document.getElementById('tblHead').innerHTML = `<tr>${colHead}</tr>`;
+
+  const tbody = document.getElementById('tblBody');
+  tbody.innerHTML = '';
+  rows.forEach(r => {
+    const d=getVal(r,bu,'d'), t=getVal(r,bu,'t'), e=getVal(r,bu,'e'), i=getVal(r,bu,'i'), s=d>0?t/d:0;
+    const extra = bu==='ALL'
+      ? `<td class="${slaClass(r.slaHCI)}">${pct(r.slaHCI)}</td><td class="${slaClass(r.slaAHI)}">${pct(r.slaAHI)}</td><td class="${slaClass(r.slaKLS)}">${pct(r.slaKLS)}</td>`
+      : '';
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${MONTHS[r.m]}</td><td>${fmt(d)}</td><td>${fmt(t)}</td><td style="color:var(--red)">${fmt(e)}</td><td style="color:var(--red)">${fmt(i)}</td><td class="${slaClass(s)}">${pct(s)}</td>${extra}`;
+    tbody.appendChild(tr);
+  });
+
+  // Baris total
+  const tR=document.createElement('tr');
+  tR.className='total-row';
+  const totSLA=tD>0?tT/tD:0;
+  const extraTot = bu==='ALL'
+    ? (() => {
+        const gtD_HCI=rows.reduce((s,r)=>s+r.dHCI,0), gtT_HCI=rows.reduce((s,r)=>s+r.tHCI,0);
+        const gtD_AHI=rows.reduce((s,r)=>s+r.dAHI,0), gtT_AHI=rows.reduce((s,r)=>s+r.tAHI,0);
+        const gtD_KLS=rows.reduce((s,r)=>s+r.dKLS,0), gtT_KLS=rows.reduce((s,r)=>s+r.tKLS,0);
+        const s1=gtD_HCI>0?gtT_HCI/gtD_HCI:0, s2=gtD_AHI>0?gtT_AHI/gtD_AHI:0, s3=gtD_KLS>0?gtT_KLS/gtD_KLS:0;
+        return `<td class="${slaClass(s1)}">${pct(s1)}</td><td class="${slaClass(s2)}">${pct(s2)}</td><td class="${slaClass(s3)}">${pct(s3)}</td>`;
+      })()
+    : '';
+  tR.innerHTML=`<td>TOTAL</td><td>${fmt(tD)}</td><td>${fmt(tT)}</td><td>${fmt(tE)}</td><td>${fmt(tI)}</td><td class="${slaClass(totSLA)}">${pct(totSLA)}</td>${extraTot}`;
+  tbody.appendChild(tR);
+}
+
+// ── Export CSV ──
+function exportCSV() {
+  const {rows, bu} = getFiltered();
+  let csv = 'Bulan,DO Diantar,DO Terkirim,Gagal Ext,Gagal Int,SLA\n';
+  rows.forEach(r => {
+    const d=getVal(r,bu,'d'), t=getVal(r,bu,'t'), e=getVal(r,bu,'e'), i=getVal(r,bu,'i'), s=d>0?t/d:0;
+    csv += `${MONTHS[r.m]},${d},${t},${e},${i},${(s*100).toFixed(2)}%\n`;
+  });
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='dashboard_pengiriman_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+}
+
+render();
+</script>
+</body>
+</html>
